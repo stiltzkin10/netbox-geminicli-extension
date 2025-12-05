@@ -1,0 +1,21 @@
+[project]
+name = "netbox-geminicli-extension"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "fastmcp>=2.13.2",
+    "pynetbox>=7.5.0",
+    "toon-format",
+]
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = ["I", "F", "N", "W", "E"]
+ignore = ["E501"]
+
+[tool.uv.sources]
+toon-format = { git = "https://github.com/toon-format/toon-python.git" }
