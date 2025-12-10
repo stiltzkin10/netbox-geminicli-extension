@@ -83,6 +83,8 @@ async def bulk_create_interfaces(
             "type": "10gbase-x-sfpp",
             "description": "Customer port 1",
             "enabled": true,
+            "ipv4_address": "192.168.1.1/24",
+            "ipv6_address": "2001:db8::1/64",
         },
         {
             "device_name": "router1",
@@ -90,6 +92,8 @@ async def bulk_create_interfaces(
             "type": "10gbase-x-sfpp",
             "description": "Customer port 2",
             "enabled": true,
+            "ipv4_address": "",
+            "ipv6_address": "",
         },
     ]
     ```
@@ -106,6 +110,8 @@ async def bulk_create_interfaces(
                 interface["type"],
                 interface.get("description", ""),
                 interface["enabled"],
+                interface.get("ipv4_address", None),
+                interface.get("ipv6_address", None),
             )
     except pynetbox.RequestError as e:
         raise Exception(f"Failed to create interface: {e}")
@@ -120,6 +126,8 @@ async def create_interface(
     type: str,
     description: str = None,
     enabled: bool = True,
+    ipv4_address: str = None,
+    ipv6_address: str = None,
 ) -> dict:
     """Create a new interface in Netbox for a specific device.
 
@@ -129,6 +137,8 @@ async def create_interface(
         type: The type of interface (e.g., "virtual", "1000base-t", "10gbase-x-sfpp", "bridge")
         description: Optional description for the interface
         enabled: Whether the interface is enabled (default: True)
+        ipv4_address: Optional IPv4 address with prefix length for the interface (e.g., "192.168.1.1/24")
+        ipv6_address: Optional IPv6 address with prefix length for the interface (e.g., "2001:db8::1/64")
 
     Returns:
         A TOON formatted representation of the created interface.
@@ -149,6 +159,21 @@ async def create_interface(
             interface_data["description"] = description
 
         interface = nb.dcim.interfaces.create(**interface_data)
+
+        # Create and assign an IP address to the interface
+        if ipv4_address:
+            nb.ipam.ip_addresses.create(
+                address=ipv4_address,
+                assigned_object_type="dcim.interface",
+                assigned_object_id=interface.id,
+            )
+
+        if ipv6_address:
+            nb.ipam.ip_addresses.create(
+                address=ipv6_address,
+                assigned_object_type="dcim.interface",
+                assigned_object_id=interface.id,
+            )
 
         # Return the interface data with the Netbox ID
         interface_data["netbox_id"] = interface.id
@@ -226,6 +251,9 @@ async def create_device(
 
         # Return the device data with the Netbox ID
         device_data["netbox_id"] = device.id
+        device_data["role"] = role_obj.name
+        device_data["site"] = site_obj.name
+        device_data["device_type"] = f"{device_type_obj.manufacturer.name} {device_type_obj.model}"
         return encode(device_data)
 
     except pynetbox.RequestError as e:
